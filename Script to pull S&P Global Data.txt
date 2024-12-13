@@ -1,0 +1,75 @@
+import requests
+import json
+import pandas as pd
+
+def get_lei_data(lei_number):
+    # GLEIF API URL with the LEI filter
+    url = f"https://api.gleif.org/api/v1/lei-records?filter%5Blei%5D={lei_number}&page%5Bnumber%5D=1&page%5Bsize%5D=15"
+    
+    # Send a GET request to the API with SSL verification disabled
+    response = requests.get(url, verify=False)
+
+    # Check if the request was successful
+    if response.status_code == 200:
+        # Parse the JSON response
+        data = response.json()
+        
+        # Check if any data was returned
+        if 'data' in data and len(data['data']) > 0:
+            return data['data'][0]  # Return the first record
+        else:
+            return None
+    else:
+        return None
+
+# List of LEI numbers (paste your LEI numbers here)
+lei_numbers = [
+    "261700K5E45DJCF5Z735",  # Updated to use a valid LEI from your previous example
+    "254900CHT3GP0CF8FM77",
+    "2549002AF6PASVP2G486",
+    "969500OUD0VB2606MD53",
+    "894500T5RYXMMPS12T93",
+    "4469000001C0COTP8392",
+    "5493008IRDIZ3ZYEEX98",
+    "254900EMECKROAZTQ810",
+    "8945007GOHIWZSCGA943",
+    "549300VP4D0U54M7EG44",
+    "5493003QHT6ZHQO67865",
+    "213800C67LQEYHM4N606",
+    "635400VEZIQKZPR7KU35"
+]
+
+# List to store data
+lei_data_list = []
+
+# Loop through the LEI numbers and fetch data
+for lei in lei_numbers:
+    print(f"Fetching data for LEI: {lei}")
+    lei_data = get_lei_data(lei)
+    
+    if lei_data:
+        # Append the data to the list
+        lei_data_list.append({
+            'LEI': lei,
+            'Entity Name': lei_data['attributes']['entity']['legalName']['name'],
+            'Previous Legal Name': lei_data['attributes']['entity']['otherNames'][0]['name'] if lei_data['attributes']['entity']['otherNames'] else None,
+            'Registration Date': lei_data['attributes']['registration']['initialRegistrationDate'],
+            'Last Update Date': lei_data['attributes']['registration']['lastUpdateDate'],
+            'Status': lei_data['attributes']['registration']['status'],
+            'Country': lei_data['attributes']['entity']['legalAddress']['country'],
+            'Postal Code': lei_data['attributes']['entity']['legalAddress']['postalCode'],
+            'OCID': lei_data['attributes']['ocid'],
+            'Conformity Flag': lei_data['attributes']['conformityFlag'],
+            'S&P Global Identifier': lei_data['attributes']['spglobal'][0] if lei_data['attributes']['spglobal'] else None
+        })
+    else:
+        print(f"No data found for LEI: {lei}")
+
+# Convert the list to a pandas DataFrame
+df = pd.DataFrame(lei_data_list)
+
+# Save the DataFrame to an Excel file
+output_file = "lei_data.xlsx"
+df.to_excel(output_file, index=False)
+
+print(f"Data successfully saved to {output_file}")
